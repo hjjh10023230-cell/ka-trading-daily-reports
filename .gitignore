@@ -1,0 +1,24 @@
+# Never commit raw/internal data
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.parquet
+*.jsonl
+
+# Local analysis inputs and outputs
+input/
+private/
+.tmp/
+*.log
+
+# Secrets and editor files
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
