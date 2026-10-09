@@ -14,7 +14,8 @@ from typing import Any
 from openpyxl import load_workbook
 
 DETAILED_REQUIRED = ["股票名称", "买卖方向", "ka类型", "用户数", "交易订单数", "trade_amt_usd"]
-PIVOT_DIMENSIONS = ["分区日期", "买卖方向", "证券类型V2", "ka类型"]
+PIVOT_REQUIRED_DIMENSIONS = ["分区日期", "买卖方向", "证券类型V2", "ka类型"]
+PIVOT_OPTIONAL_DIMENSIONS = ["股票名称"]
 PIVOT_MEASURES = ["用户数", "交易订单数", "trade_amt_usd"]
 DIRECTIONS = {"BUY", "SELL", "BUY_BACK", "SELL_SHORT"}
 MARKETS = {"JP", "US"}
@@ -154,16 +155,24 @@ def aggregate_detailed(ws: Any) -> dict[str, Any]:
 
 def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
     merged = merged_lookup(ws)
-    dimensions = [ws.cell(2, column).value for column in range(1, 5)]
-    if dimensions != PIVOT_DIMENSIONS:
-        raise ValueError(f"双层表头前四列应为：{', '.join(PIVOT_DIMENSIONS)}")
-    has_symbol = ws.cell(2, 5).value == "股票名称"
-    measure_start = 6 if has_symbol else 5
+    second_row = [ws.cell(2, column).value for column in range(1, ws.max_column + 1)]
+    dimension_columns = {
+        name: second_row.index(name) + 1
+        for name in PIVOT_REQUIRED_DIMENSIONS + PIVOT_OPTIONAL_DIMENSIONS
+        if name in second_row
+    }
+    missing = [name for name in PIVOT_REQUIRED_DIMENSIONS if name not in dimension_columns]
+    if missing:
+        raise ValueError(f"双层表头缺少维度：{', '.join(missing)}")
+    has_symbol = "股票名称" in dimension_columns
 
     measure_columns: list[tuple[str, str, int]] = []
-    for column in range(measure_start, ws.max_column + 1):
+    for column in range(1, ws.max_column + 1):
         measure = ws.cell(1, column).value or merged.get((1, column))
-        market = str(ws.cell(2, column).value or "").upper()
+        header = ws.cell(2, column).value
+        market = str(header or "").upper()
+        if measure is None and header in dimension_columns:
+            continue
         if measure not in PIVOT_MEASURES or market not in MARKETS:
             raise ValueError(f"第 {column} 列存在未知指标/市场：{measure!r}/{market!r}")
         measure_columns.append((str(measure), market, column))
@@ -171,16 +180,20 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     seen_dates: set[str] = set()
     for row_no in range(3, ws.max_row + 1):
-        raw_date = ws.cell(row_no, 1).value or merged.get((row_no, 1))
+        def dimension(name: str, default: str = "") -> Any:
+            column = dimension_columns[name]
+            return ws.cell(row_no, column).value or merged.get((row_no, column)) or default
+
+        raw_date = dimension("分区日期")
         if isinstance(raw_date, (datetime, date)):
             day = raw_date.strftime("%Y-%m-%d")
         else:
             day = str(raw_date or "")
         seen_dates.add(day)
-        direction = str(ws.cell(row_no, 2).value or merged.get((row_no, 2)) or "").upper()
-        klass = str(ws.cell(row_no, 3).value or merged.get((row_no, 3)) or "").upper()
-        crowd = str(ws.cell(row_no, 4).value or merged.get((row_no, 4)) or "未分类")
-        symbol = str(ws.cell(row_no, 5).value or merged.get((row_no, 5)) or "") if has_symbol else ""
+        direction = str(dimension("买卖方向")).upper()
+        klass = str(dimension("证券类型V2")).upper()
+        crowd = str(dimension("ka类型", "未分类"))
+        symbol = str(dimension("股票名称")) if has_symbol else ""
         if direction not in DIRECTIONS:
             raise ValueError(f"第 {row_no} 行存在未知买卖方向：{direction!r}")
         if not klass:
@@ -216,7 +229,7 @@ def aggregate(path: Path, report_date: str) -> dict[str, Any]:
     second_row = [cell.value for cell in ws[2]] if ws.max_row >= 2 else []
     if all(name in first_row for name in DETAILED_REQUIRED):
         return aggregate_detailed(ws)
-    if second_row[:4] == PIVOT_DIMENSIONS:
+    if all(name in second_row for name in PIVOT_REQUIRED_DIMENSIONS):
         return aggregate_pivot(ws, report_date)
     raise ValueError("无法识别工作簿结构：既不是逐标的明细，也不是人群×市场×品类双层透视表")
 
