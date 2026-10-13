@@ -1,24 +1,26 @@
-# KA Trading Daily Reports
+# KA Trading Reports
 
-KA 交易趋势日报中心，用于按交易日归档聚合、脱敏后的市场观察。
+KA 交易趋势报告中心，用于归档聚合、脱敏后的日报与周报市场观察。
 
 ## 在线入口
 
 - 报告中心：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/`
-- 最新一期：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/latest.html`
-- 历史日报：从报告中心进入，或访问对应日期目录
+- 最新日报：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/latest.html`
+- 最新周报：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/reports/weekly/2026/2026-10-05_2026-10-11/`
+- 历史报告：从报告中心进入，或访问对应日期/周期目录
 
 ## 目录规则
 
 ```text
-reports/<年份>/<YYYY-MM-DD>/index.html
+日报：reports/<年份>/<YYYY-MM-DD>/index.html
+周报：reports/weekly/<年份>/<YYYY-MM-DD_YYYY-MM-DD>/index.html
 ```
 
-## 每日更新
+## 报告更新
 
 1. 原始 Excel 仅保存在仓库外，不得复制进仓库。
-2. 生成并复核当日报告，按日期放入独立目录。
-3. 更新 `reports.json`、首页卡片和 `latest.html`。
+2. 生成并复核日报或周报，按日期/周期放入独立目录。
+3. 更新 `reports.json` 和首页卡片；发布日报时同步更新 `latest.html`。
 4. 发布前检查聚合口径、低样本披露与敏感信息。
 5. 提交并推送到 `main`，GitHub Pages 自动更新。
 
