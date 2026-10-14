@@ -14,8 +14,8 @@ from typing import Any
 from openpyxl import load_workbook
 
 DETAILED_REQUIRED = ["股票名称", "买卖方向", "ka类型", "用户数", "交易订单数", "trade_amt_usd"]
-PIVOT_REQUIRED_DIMENSIONS = ["分区日期", "买卖方向", "证券类型V2", "ka类型"]
-PIVOT_OPTIONAL_DIMENSIONS = ["股票名称"]
+PIVOT_REQUIRED_DIMENSIONS = ["买卖方向", "证券类型V2", "ka类型"]
+PIVOT_OPTIONAL_DIMENSIONS = ["分区日期", "股票名称"]
 PIVOT_MEASURES = ["用户数", "交易订单数", "trade_amt_usd"]
 DIRECTIONS = {"BUY", "SELL", "BUY_BACK", "SELL_SHORT"}
 MARKETS = {"JP", "US"}
@@ -164,6 +164,7 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
     missing = [name for name in PIVOT_REQUIRED_DIMENSIONS if name not in dimension_columns]
     if missing:
         raise ValueError(f"双层表头缺少维度：{', '.join(missing)}")
+    has_date = "分区日期" in dimension_columns
     has_symbol = "股票名称" in dimension_columns
 
     measure_columns: list[tuple[str, str, int]] = []
@@ -184,12 +185,13 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
             column = dimension_columns[name]
             return ws.cell(row_no, column).value or merged.get((row_no, column)) or default
 
-        raw_date = dimension("分区日期")
-        if isinstance(raw_date, (datetime, date)):
-            day = raw_date.strftime("%Y-%m-%d")
-        else:
-            day = str(raw_date or "")
-        seen_dates.add(day)
+        if has_date:
+            raw_date = dimension("分区日期")
+            if isinstance(raw_date, (datetime, date)):
+                day = raw_date.strftime("%Y-%m-%d")
+            else:
+                day = str(raw_date or "")
+            seen_dates.add(day)
         direction = str(dimension("买卖方向")).upper()
         klass = str(dimension("证券类型V2")).upper()
         crowd = str(dimension("ka类型", "未分类"))
@@ -215,9 +217,12 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
                         "amount": values["trade_amt_usd"],
                     }
                 )
-    if seen_dates != {report_date}:
+    if has_date and seen_dates != {report_date}:
         raise ValueError(f"源表日期 {sorted(seen_dates)!r} 与 --date {report_date!r} 不一致")
-    return aggregate_rows(rows, "crowd-market-asset-symbol-pivot" if has_symbol else "crowd-market-asset-pivot")
+    mode = "crowd-market-asset-symbol-pivot" if has_symbol else "crowd-market-asset-pivot"
+    if not has_date:
+        mode += "-undated"
+    return aggregate_rows(rows, mode)
 
 
 def aggregate(path: Path, report_date: str) -> dict[str, Any]:
