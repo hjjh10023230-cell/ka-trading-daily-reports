@@ -192,6 +192,8 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
             else:
                 day = str(raw_date or "")
             seen_dates.add(day)
+            if day != report_date:
+                continue
         direction = str(dimension("买卖方向")).upper()
         klass = str(dimension("证券类型V2")).upper()
         crowd = str(dimension("ka类型", "未分类"))
@@ -217,8 +219,8 @@ def aggregate_pivot(ws: Any, report_date: str) -> dict[str, Any]:
                         "amount": values["trade_amt_usd"],
                     }
                 )
-    if has_date and seen_dates != {report_date}:
-        raise ValueError(f"源表日期 {sorted(seen_dates)!r} 与 --date {report_date!r} 不一致")
+    if has_date and report_date not in seen_dates:
+        raise ValueError(f"源表日期 {sorted(seen_dates)!r} 不包含 --date {report_date!r}")
     mode = "crowd-market-asset-symbol-pivot" if has_symbol else "crowd-market-asset-pivot"
     if not has_date:
         mode += "-undated"
