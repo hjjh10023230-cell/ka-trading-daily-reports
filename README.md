@@ -6,7 +6,7 @@ KA 交易趋势报告中心，用于归档聚合、脱敏后的日报与周报�
 
 - 报告中心：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/`
 - 最新日报：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/latest.html`
-- 最新周报：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/reports/weekly/2026/2026-10-05_2026-10-11/`
+- 最新周报：`https://hjjh10023230-cell.github.io/ka-trading-daily-reports/reports/weekly/2026/2026-10-12_2026-10-16/`
 - 历史报告：从报告中心进入，或访问对应日期/周期目录
 
 ## 目录规则
